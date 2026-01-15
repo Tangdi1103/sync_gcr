@@ -11,6 +11,9 @@ on:
 jobs:
   pull_and_package:
     runs-on: ubuntu-22.04
+    env:
+      IMAGE_LIST: "images.txt"
+      OUTPUT_DIR: "./myImages"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -33,8 +36,6 @@ jobs:
 
       - name: Pull Docker Images and Package
         run: |
-          IMAGE_LIST="images.txt"
-          OUTPUT_DIR="./myImages"
           mkdir -p $OUTPUT_DIR
           
           # 检查 images.txt 文件是否存在
@@ -95,6 +96,13 @@ jobs:
           release_name=$(TZ="Asia/Shanghai" date +'%Y-%m-%d %H:%M Build')
           echo "RELEASE_NAME=$release_name" >> $GITHUB_ENV
 
+      # 将tar.gz打包到一个压缩包，如果希望上传单独镜像tar.gz，将这个步骤注释即可
+      - name: Create single archive
+        run: |
+          cd $OUTPUT_DIR
+          tar -czf ../all-docker-images-amd64.tar.gz *.tar.gz
+          cd ..
+
       - name: Create Release and Upload Assets
         uses: softprops/action-gh-release@v2.1.0
         with:
@@ -108,6 +116,7 @@ jobs:
             [![Bilibili](https://img.shields.io/badge/Bilibili-123456?logo=bilibili&logoColor=fff&labelColor=fb7299 )](https://www.bilibili.com/video/BV1yyq6YREdF )
           draft: false
           prerelease: false
-          files: ./myImages/*.tar.gz
+          # files: $OUTPUT_DIR/*.tar.gz # 上传单独的tar.gz
+          files: ./all-docker-images-amd64.tar.gz  # 上传合并后的文件
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
