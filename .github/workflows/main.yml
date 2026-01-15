@@ -11,11 +11,11 @@ name: CI
 #     branches: [ master ]
 on:
   workflow_dispatch:
-    inputs:
-      docker_images:
-        description: '随便填'
-        required: true
-        default: '11'
+    # inputs:
+    #   docker_images:
+    #     description: '请填写docker镜像名称,多个用英文逗号分开'
+    #     required: true
+    #     default: 'alpine:latest,alpine/curl,busybox:stable-glibc'
 
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
