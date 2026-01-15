@@ -24,6 +24,12 @@ jobs:
           find . -name "images.txt" -type f 2>/dev/null || echo "文件不存在"
           echo "检查文件权限:"
           test -f images.txt && ls -l images.txt || echo "无法访问"
+          echo "=== 根分区空间 ==="
+          df -h /
+          echo "=== /var/lib/docker 使用情况 ==="
+          sudo du -sh /var/lib/docker || true
+          echo "=== 工作区空间 ==="
+          df -h $GITHUB_WORKSPACE
 
       - name: Maximize build space
         uses: easimon/maximize-build-space@v7
@@ -45,6 +51,12 @@ jobs:
           find . -name "images.txt" -type f 2>/dev/null || echo "文件不存在"
           echo "检查文件权限:"
           test -f images.txt && ls -l images.txt || echo "无法访问"
+          echo "=== 根分区空间 ==="
+          df -h /
+          echo "=== /var/lib/docker 使用情况 ==="
+          sudo du -sh /var/lib/docker || true
+          echo "=== 工作区空间 ==="
+          df -h $GITHUB_WORKSPACE
 
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -58,6 +70,12 @@ jobs:
           find . -name "images.txt" -type f 2>/dev/null || echo "文件不存在"
           echo "检查文件权限:"
           test -f images.txt && ls -l images.txt || echo "无法访问"
+          echo "=== 根分区空间 ==="
+          df -h /
+          echo "=== /var/lib/docker 使用情况 ==="
+          sudo du -sh /var/lib/docker || true
+          echo "=== 工作区空间 ==="
+          df -h $GITHUB_WORKSPACE
 
       - name: Login to Registry B
         run: |
