@@ -27,6 +27,16 @@ jobs:
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
+      - name: Maximize build space
+        uses: easimon/maximize-build-space@v7
+        with:
+          root-reserve-mb: 20480      # 保留 20480MB 给根分区
+          swap-size-mb: 1024        # 设置 1GB 交换空间
+          remove-dotnet: 'true'
+          remove-android: 'true'
+          remove-haskell: 'true'
+          remove-codeql: 'true'     # 额外清理 CodeQL
+          remove-docker-images: 'true'  # 清理旧 Docker 镜像
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v1
       - uses: BSFishy/pip-action@v1
