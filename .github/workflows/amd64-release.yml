@@ -42,20 +42,26 @@ jobs:
               digest_part="${image##*@sha256:}"  # 获取 sha256: 之后的 digest
               base_name="${image_part##*/}"  # 获取最后一个 / 之后的镜像名
               tag="${digest_part:0:6}"  # 取 digest 前6位作为标签
+
+              # 构造 registry B 的镜像名 (需要使用提取的 tag)
+              image_to_pull="kenwood/${base_name}:${tag}"
+              file_name="${base_name}_${tag}"    # 文件名也包含缩短的 digest
             else
               # 处理普通格式: registry/path/image:tag 或 registry/path/image
               base_name="${image##*/}"  # 获取最后一个 / 之后的部分（包含标签）
+
+              # 构造 registry B 的镜像名
+              image_to_pull="kenwood/${base_name}"
+              file_name="${base_name_with_tag}"  # 文件名使用原始镜像名+标签
             fi
             
-            # 生成 registry B 的完整镜像名称
-            image_to_pull="kenwood/${base_name}"
             echo "Pulling from registry B: $image_to_pull"
             
             # 拉取 amd64 镜像
             docker pull "${image_to_pull}" --platform "linux/amd64"
-            
-            # 生成文件名（将 / 和 : 替换为 _）
-            file_name=$(echo "${base_name}" | sed 's/[:/]/_/g')
+
+            # 将文件名中的 / 和 : 替换为 _，确保文件名合法
+            file_name=$(echo "$file_name" | sed 's/[:/]/_/g')
             
             # 保存镜像为 tar 包并压缩
             docker save "${image_to_pull}" -o "${file_name}-amd64.tar"
