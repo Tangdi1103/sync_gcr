@@ -52,7 +52,7 @@ jobs:
 
               # 构造 registry B 的镜像名
               image_to_pull="kenwood/${base_name}"
-              file_name="${base_name_with_tag}"  # 文件名使用原始镜像名+标签
+              file_name="${base_name}"  # 文件名使用原始镜像名+标签
             fi
             
             echo "Pulling from registry B: $image_to_pull"
