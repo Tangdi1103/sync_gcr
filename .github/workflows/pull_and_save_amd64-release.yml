@@ -29,6 +29,16 @@ jobs:
           remove-codeql: 'true'     # 额外清理 CodeQL
           remove-docker-images: 'true'  # 清理旧 Docker 镜像
 
+      - name: Debug file structure
+        run: |
+          echo "当前工作目录: $(pwd)"
+          echo "目录内容:"
+          ls -la
+          echo "查找 images.txt:"
+          find . -name "images.txt" -type f 2>/dev/null || echo "文件不存在"
+          echo "检查文件权限:"
+          test -f images.txt && ls -l images.txt || echo "无法访问"
+
       - name: Login to Registry B
         run: |
           # 如果 kenwood registry 需要认证，请取消下面这行注释
