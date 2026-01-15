@@ -15,8 +15,28 @@ jobs:
       IMAGE_LIST: "images.txt"
       OUTPUT_DIR: "./myImages"
     steps:
+      - name: Debug file structure
+        run: |
+          echo "当前工作目录: $(pwd)"
+          echo "目录内容:"
+          ls -la
+          echo "查找 images.txt:"
+          find . -name "images.txt" -type f 2>/dev/null || echo "文件不存在"
+          echo "检查文件权限:"
+          test -f images.txt && ls -l images.txt || echo "无法访问"
+    
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Debug file structure
+        run: |
+          echo "当前工作目录: $(pwd)"
+          echo "目录内容:"
+          ls -la
+          echo "查找 images.txt:"
+          find . -name "images.txt" -type f 2>/dev/null || echo "文件不存在"
+          echo "检查文件权限:"
+          test -f images.txt && ls -l images.txt || echo "无法访问"
 
       - name: Maximize build space
         uses: easimon/maximize-build-space@v7
