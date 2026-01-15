@@ -140,7 +140,8 @@ jobs:
       - name: List generated files (debug step)
         run: |
           echo "Preparing docker images list (.tar.gz) files:"
-          find $GITHUB_WORKSPACE -name "*.tar.gz"
+          sudo du -sh $GITHUB_WORKSPACE/$OUTPUT_DIR/* || true
+          # find $GITHUB_WORKSPACE -name "*.tar.gz"
           release_name=$(TZ="Asia/Shanghai" date +'%Y-%m-%d %H:%M Build')
           echo "RELEASE_NAME=$release_name" >> $GITHUB_ENV
 
