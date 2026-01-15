@@ -15,6 +15,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Maximize build space
+        uses: easimon/maximize-build-space@v7
+        with:
+          root-reserve-mb: 512      # 保留 512MB 给根分区
+          swap-size-mb: 1024        # 设置 1GB 交换空间
+          remove-dotnet: 'true'
+          remove-android: 'true'
+          remove-haskell: 'true'
+          remove-codeql: 'true'     # 额外清理 CodeQL
+          remove-docker-images: 'true'  # 清理旧 Docker 镜像
+
       - name: Login to Registry B
         run: |
           # 如果 kenwood registry 需要认证，请取消下面这行注释
@@ -22,12 +33,16 @@ jobs:
 
       - name: Pull Docker Images and Package
         run: |
+          IMAGE_LIST="images.txt"
+          OUTPUT_DIR="./myImages"
+          mkdir -p $OUTPUT_DIR
+          
           # 检查 images.txt 文件是否存在
-          if [ ! -f "images.txt" ]; then
-            echo "Error: images.txt not found"
+          if [ ! -f $IMAGE_LIST ]; then
+            echo "Error: $IMAGE_LIST not found"
             exit 1
           fi
-          
+
           # 读取并处理每个镜像
           while IFS= read -r image; do
             # 跳过空行和注释行
@@ -64,13 +79,14 @@ jobs:
             file_name=$(echo "$file_name" | sed 's/[:/]/_/g')
             
             # 保存镜像为 tar 包并压缩
-            docker save "${image_to_pull}" -o "${file_name}-amd64.tar"
-            gzip -c "${file_name}-amd64.tar" > "${file_name}-amd64.tar.gz"
-            rm "${file_name}-amd64.tar"
+            docker save "${image_to_pull}" -o "$OUTPUT_DIR/${file_name}-amd64.tar"
+            gzip -c "$OUTPUT_DIR/${file_name}-amd64.tar" > "$OUTPUT_DIR/${file_name}-amd64.tar.gz"
+            rm "$OUTPUT_DIR/${file_name}-amd64.tar"
+            docker rmi "${image_to_pull}"  # 删除已打包的镜像
             
             echo "Successfully packaged: ${file_name}-amd64.tar.gz"
             echo "---"
-          done < images.txt
+          done < $IMAGE_LIST
 
       - name: List generated files (debug step)
         run: |
@@ -79,8 +95,8 @@ jobs:
           release_name=$(TZ="Asia/Shanghai" date +'%Y-%m-%d %H:%M Build')
           echo "RELEASE_NAME=$release_name" >> $GITHUB_ENV
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@master
+      - name: Create Release and Upload Assets
+        uses: softprops/action-gh-release@v2.1.0
         with:
           tag_name: DockerTarBuilder-AMD64
           name: ${{ env.RELEASE_NAME }} for x86-64
@@ -92,14 +108,6 @@ jobs:
             [![Bilibili](https://img.shields.io/badge/Bilibili-123456?logo=bilibili&logoColor=fff&labelColor=fb7299 )](https://www.bilibili.com/video/BV1yyq6YREdF )
           draft: false
           prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload Docker images as release assets
-        uses: softprops/action-gh-release@v2.1.0
-        with:
-          tag_name: DockerTarBuilder-AMD64
-          files: ${{ github.workspace }}/*.tar.gz
-          token: ${{ secrets.GITHUB_TOKEN }}
+          files: ./myImages/*.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
