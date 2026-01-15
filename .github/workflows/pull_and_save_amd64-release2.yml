@@ -1,0 +1,171 @@
+name: Get-AMD64-Docker-Images-Release
+
+on:
+  workflow_dispatch:
+    # inputs:
+    #   docker_images:
+    #     description: '请填写docker镜像名称,多个用英文逗号分开'
+    #     required: true
+    #     default: 'alpine:latest,alpine/curl,busybox:stable-glibc'
+
+jobs:
+  pull_and_package:
+    runs-on: ubuntu-22.04
+    env:
+      IMAGE_LIST: "images.txt"
+      OUTPUT_DIR: "./myImages"
+    steps:
+      - name: Debug file structure
+        run: |
+          echo "当前工作目录: $(pwd)"
+          echo "目录内容:"
+          ls -la
+          echo "查找 images.txt:"
+          find . -name "images.txt" -type f 2>/dev/null || echo "文件不存在"
+          echo "检查文件权限:"
+          test -f images.txt && ls -l images.txt || echo "无法访问"
+          echo "=== 根分区空间 ==="
+          df -h /
+          echo "=== /var/lib/docker 使用情况 ==="
+          sudo du -sh /var/lib/docker || true
+          echo "=== 工作区空间 ==="
+          df -h $GITHUB_WORKSPACE
+
+      - name: Maximize build space
+        uses: easimon/maximize-build-space@v7
+        with:
+          root-reserve-mb: 20480      # 保留 20480MB 给根分区
+          swap-size-mb: 1024        # 设置 1GB 交换空间
+          remove-dotnet: 'true'
+          remove-android: 'true'
+          remove-haskell: 'true'
+          remove-codeql: 'true'     # 额外清理 CodeQL
+          remove-docker-images: 'true'  # 清理旧 Docker 镜像
+
+      - name: Debug file structure
+        run: |
+          echo "当前工作目录: $(pwd)"
+          echo "目录内容:"
+          ls -la
+          echo "查找 images.txt:"
+          find . -name "images.txt" -type f 2>/dev/null || echo "文件不存在"
+          echo "检查文件权限:"
+          test -f images.txt && ls -l images.txt || echo "无法访问"
+          echo "=== 根分区空间 ==="
+          df -h /
+          echo "=== /var/lib/docker 使用情况 ==="
+          sudo du -sh /var/lib/docker || true
+          echo "=== 工作区空间 ==="
+          df -h $GITHUB_WORKSPACE
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Debug file structure
+        run: |
+          echo "当前工作目录: $(pwd)"
+          echo "目录内容:"
+          ls -la
+          echo "查找 images.txt:"
+          find . -name "images.txt" -type f 2>/dev/null || echo "文件不存在"
+          echo "检查文件权限:"
+          test -f images.txt && ls -l images.txt || echo "无法访问"
+          echo "=== 根分区空间 ==="
+          df -h /
+          echo "=== /var/lib/docker 使用情况 ==="
+          sudo du -sh /var/lib/docker || true
+          echo "=== 工作区空间 ==="
+          df -h $GITHUB_WORKSPACE
+
+      - name: Login to Registry B
+        run: |
+          # 如果 kenwood registry 需要认证，请取消下面这行注释
+          # echo "${{ secrets.REGISTRY_B_PASSWORD }}" | docker login -u kenwood --password-stdin <registry-b-url>
+
+      - name: Pull Docker Images and Package
+        run: |
+          mkdir -p $OUTPUT_DIR
+          
+          # 检查 images.txt 文件是否存在
+          if [ ! -f $IMAGE_LIST ]; then
+            echo "Error: $IMAGE_LIST not found"
+            exit 1
+          fi
+
+          # 读取并处理每个镜像
+          while IFS= read -r image; do
+            # 跳过空行和注释行
+            [[ -z "$image" || "$image" =~ ^# ]] && continue
+            
+            echo "Processing original image: $image"
+            
+            # 根据 Python 代码逻辑处理镜像名称
+            if [[ "$image" == *"@sha256:"* ]]; then
+              # 处理 sha256 格式: registry/path/image@sha256:digest
+              image_part="${image%%@*}"  # 获取 @ 之前的部分
+              digest_part="${image##*@sha256:}"  # 获取 sha256: 之后的 digest
+              base_name="${image_part##*/}"  # 获取最后一个 / 之后的镜像名
+              tag="${digest_part:0:6}"  # 取 digest 前6位作为标签
+
+              # 构造 registry B 的镜像名 (需要使用提取的 tag)
+              image_to_pull="kenwood/${base_name}:${tag}"
+              file_name="${base_name}_${tag}"    # 文件名也包含缩短的 digest
+            else
+              # 处理普通格式: registry/path/image:tag 或 registry/path/image
+              base_name="${image##*/}"  # 获取最后一个 / 之后的部分（包含标签）
+
+              # 构造 registry B 的镜像名
+              image_to_pull="kenwood/${base_name}"
+              file_name="${base_name}"  # 文件名使用原始镜像名+标签
+            fi
+            
+            echo "Pulling from registry B: $image_to_pull"
+            
+            # 拉取 amd64 镜像
+            docker pull $image --platform "linux/amd64"
+            docker tag $image ${image_to_pull}
+
+            # 将文件名中的 / 和 : 替换为 _，确保文件名合法
+            file_name=$(echo "$file_name" | sed 's/[:/]/_/g')
+            
+            # 保存镜像为 tar 包并压缩
+            docker save "${image_to_pull}" -o "$OUTPUT_DIR/${file_name}-amd64.tar"
+            gzip -c "$OUTPUT_DIR/${file_name}-amd64.tar" > "$OUTPUT_DIR/${file_name}-amd64.tar.gz"
+            rm "$OUTPUT_DIR/${file_name}-amd64.tar"
+            docker rmi "${image_to_pull}"  # 删除已打包的镜像
+            
+            echo "Successfully packaged: ${file_name}-amd64.tar.gz"
+            echo "---"
+          done < $IMAGE_LIST
+
+      - name: List generated files (debug step)
+        run: |
+          echo "Preparing docker images list (.tar.gz) files:"
+          find $GITHUB_WORKSPACE -name "*.tar.gz"
+          release_name=$(TZ="Asia/Shanghai" date +'%Y-%m-%d %H:%M Build')
+          echo "RELEASE_NAME=$release_name" >> $GITHUB_ENV
+
+      # 将tar.gz打包到一个压缩包，如果希望上传单独镜像tar.gz，将这个步骤注释即可
+      - name: Create single archive
+        run: |
+          cd $OUTPUT_DIR
+          tar -czf ../all-docker-images-amd64.tar.gz *.tar.gz
+          cd ..
+
+      - name: Create Release and Upload Assets
+        uses: softprops/action-gh-release@v2.1.0
+        with:
+          tag_name: DockerTarBuilder-AMD64
+          name: ${{ env.RELEASE_NAME }} for x86-64
+          body: |
+            [![Github](https://img.shields.io/badge/RELEASE:DockerTarBuilder-123456?logo=github&logoColor=fff&labelColor=green&style=for-the-badge )](https://www.bilibili.com/video/BV1EZ421M7mL ) [![Github](https://img.shields.io/badge/ 国内加速站下载-FC7C0D?logo=github&logoColor=fff&labelColor=000&style=for-the-badge)](https://wkdaily.cpolar.top/archives/1 )
+            ### How to use? For example
+            `docker load -i alpine_latest.tar.gz `
+            ### Video teaching
+            [![Bilibili](https://img.shields.io/badge/Bilibili-123456?logo=bilibili&logoColor=fff&labelColor=fb7299 )](https://www.bilibili.com/video/BV1yyq6YREdF )
+          draft: false
+          prerelease: false
+          # files: $OUTPUT_DIR/*.tar.gz # 上传单独的tar.gz
+          files: ./all-docker-images-amd64.tar.gz  # 上传合并后的文件
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
