@@ -1,0 +1,11 @@
+docker.io/kubeflownotebookswg/jupyter-web-app:v1.6.1
+docker.io/kubeflownotebookswg/notebook-controller:v1.6.1
+docker.io/kubeflownotebookswg/tensorboard-controller:v1.6.1
+docker.io/kubeflownotebookswg/tensorboards-web-app:v1.6.1
+docker.io/kubeflowkatib/katib-controller:v0.14.0
+docker.io/kubeflowkatib/katib-db-manager:v0.14.0
+docker.io/kubeflowkatib/katib-ui:v0.14.0
+docker.io/kubeflowkatib/enas-cifar10-cpu:v0.14.0
+docker.io/kubeflowkatib/mxnet-mnist:v0.14.0
+docker.io/kubeflowkatib/pytorch-mnist-cpu:v0.14.0
+kubeflow/training-operator:v1-e1434f6
