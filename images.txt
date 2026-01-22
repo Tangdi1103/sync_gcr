@@ -1,5 +1,5 @@
 kubeflownotebookswg/jupyter-scipy:v1.6.1
 kubeflownotebookswg/jupyter-pytorch-full:v1.6.1
-kubeflownotebookswg/jupyter-pytorch-cuda-full:v1.6.1
+#kubeflownotebookswg/jupyter-pytorch-cuda-full:v1.6.1
 kubeflownotebookswg/codeserver-python:v1.6.1
 kubeflownotebookswg/rstudio-tidyverse:v1.6.1
